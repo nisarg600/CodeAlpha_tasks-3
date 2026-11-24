@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Music Generation - Interactive Player</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #0f172a;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+        .stat-item { text-align: center; }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #38bdf8;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        button {
+            background: linear-gradient(135deg, #0284c7, #6366f1);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 9999px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+            transition: all 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        canvas {
+            width: 100%;
+            height: 260px;
+            background: #090d16;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+        .audio-link {
+            text-align: center;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        .audio-link a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Music Generation - Piano Roll Player</h1>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value">150</div>
+                <div class="stat-label">Total Notes</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">52.5s</div>
+                <div class="stat-label">Duration</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">PyTorch LSTM</div>
+                <div class="stat-label">Model Type</div>
+            </div>
+        </div>
+
+        <canvas id="pianoRoll"></canvas>
+
+        <div class="controls">
+            <button id="playBtn">&#9654; Play AI Composition</button>
+            <button id="stopBtn" disabled>&#9209; Stop</button>
+        </div>
+
+        <div class="audio-link">
+            Files ready in project: 
+            <a href="output/generated_music.wav" download>output/generated_music.wav</a> &bull; 
+            <a href="output/generated_music.mid" download>output/generated_music.mid</a>
+        </div>
+    </div>
+
+    <script>
+        const notes = [{"pitch": 53, "start": 0.0, "end": 0.35}, {"pitch": 57, "start": 0.35, "end": 0.7}, {"pitch": 60, "start": 0.7, "end": 1.05}, {"pitch": 65, "start": 1.05, "end": 1.4}, {"pitch": 65, "start": 1.4, "end": 1.75}, {"pitch": 52, "start": 1.75, "end": 2.1}, {"pitch": 55, "start": 2.1, "end": 2.45}, {"pitch": 60, "start": 2.45, "end": 2.8}, {"pitch": 67, "start": 2.8, "end": 3.15}, {"pitch": 72, "start": 3.15, "end": 3.5}, {"pitch": 60, "start": 3.5, "end": 3.85}, {"pitch": 53, "start": 3.85, "end": 4.2}, {"pitch": 57, "start": 4.2, "end": 4.55}, {"pitch": 60, "start": 4.55, "end": 4.9}, {"pitch": 65, "start": 4.9, "end": 5.25}, {"pitch": 69, "start": 5.25, "end": 5.6}, {"pitch": 53, "start": 5.6, "end": 5.95}, {"pitch": 50, "start": 5.95, "end": 6.3}, {"pitch": 57, "start": 6.3, "end": 6.65}, {"pitch": 57, "start": 6.65, "end": 7.0}, {"pitch": 62, "start": 7.0, "end": 7.35}, {"pitch": 65, "start": 7.35, "end": 7.7}, {"pitch": 53, "start": 7.7, "end": 8.05}, {"pitch": 45, "start": 8.05, "end": 8.4}, {"pitch": 57, "start": 8.4, "end": 8.75}, {"pitch": 57, "start": 8.75, "end": 9.1}, {"pitch": 65, "start": 9.1, "end": 9.45}, {"pitch": 72, "start": 9.45, "end": 9.8}, {"pitch": 60, "start": 9.8, "end": 10.15}, {"pitch": 46, "start": 10.15, "end": 10.5}, {"pitch": 53, "start": 10.5, "end": 10.85}, {"pitch": 65, "start": 10.85, "end": 11.2}, {"pitch": 70, "start": 11.2, "end": 11.55}, {"pitch": 74, "start": 11.55, "end": 11.9}, {"pitch": 70, "start": 11.9, "end": 12.25}, {"pitch": 48, "start": 12.25, "end": 12.6}, {"pitch": 69, "start": 12.6, "end": 12.95}, {"pitch": 67, "start": 12.95, "end": 13.3}, {"pitch": 50, "start": 13.3, "end": 13.65}, {"pitch": 65, "start": 13.65, "end": 14.0}, {"pitch": 65, "start": 14.0, "end": 14.35}, {"pitch": 70, "start": 14.35, "end": 14.7}, {"pitch": 74, "start": 14.7, "end": 15.05}, {"pitch": 52, "start": 15.05, "end": 15.4}, {"pitch": 67, "start": 15.4, "end": 15.75}, {"pitch": 53, "start": 15.75, "end": 16.1}, {"pitch": 65, "start": 16.1, "end": 16.45}, {"pitch": 69, "start": 16.45, "end": 16.8}, {"pitch": 69, "start": 16.8, "end": 17.15}, {"pitch": 72, "start": 17.15, "end": 17.5}, {"pitch": 60, "start": 17.5, "end": 17.85}, {"pitch": 65, "start": 17.85, "end": 18.2}, {"pitch": 69, "start": 18.2, "end": 18.55}, {"pitch": 72, "start": 18.55, "end": 18.9}, {"pitch": 67, "start": 18.9, "end": 19.25}, {"pitch": 50, "start": 19.25, "end": 19.6}, {"pitch": 65, "start": 19.6, "end": 19.95}, {"pitch": 70, "start": 19.95, "end": 20.3}, {"pitch": 74, "start": 20.3, "end": 20.65}, {"pitch": 52, "start": 20.65, "end": 21.0}, {"pitch": 53, "start": 21.0, "end": 21.35}, {"pitch": 65, "start": 21.35, "end": 21.7}, {"pitch": 69, "start": 21.7, "end": 22.05}, {"pitch": 57, "start": 22.05, "end": 22.4}, {"pitch": 60, "start": 22.4, "end": 22.75}, {"pitch": 65, "start": 22.75, "end": 23.1}, {"pitch": 65, "start": 23.1, "end": 23.45}, {"pitch": 69, "start": 23.45, "end": 23.8}, {"pitch": 48, "start": 23.8, "end": 24.15}, {"pitch": 55, "start": 24.15, "end": 24.5}, {"pitch": 60, "start": 24.5, "end": 24.85}, {"pitch": 72, "start": 24.85, "end": 25.2}, {"pitch": 67, "start": 25.2, "end": 25.55}, {"pitch": 53, "start": 25.55, "end": 25.9}, {"pitch": 65, "start": 25.9, "end": 26.25}, {"pitch": 72, "start": 26.25, "end": 26.6}, {"pitch": 72, "start": 26.6, "end": 26.95}, {"pitch": 58, "start": 26.95, "end": 27.3}, {"pitch": 65, "start": 27.3, "end": 27.65}, {"pitch": 69, "start": 27.65, "end": 28.0}, {"pitch": 51, "start": 28.0, "end": 28.35}, {"pitch": 55, "start": 28.35, "end": 28.7}, {"pitch": 67, "start": 28.7, "end": 29.05}, {"pitch": 72, "start": 29.05, "end": 29.4}, {"pitch": 70, "start": 29.4, "end": 29.75}, {"pitch": 48, "start": 29.75, "end": 30.1}, {"pitch": 64, "start": 30.1, "end": 30.45}, {"pitch": 67, "start": 30.45, "end": 30.8}, {"pitch": 72, "start": 30.8, "end": 31.15}, {"pitch": 48, "start": 31.15, "end": 31.5}, {"pitch": 60, "start": 31.5, "end": 31.85}, {"pitch": 64, "start": 31.85, "end": 32.2}, {"pitch": 69, "start": 32.2, "end": 32.55}, {"pitch": 50, "start": 32.55, "end": 32.9}, {"pitch": 57, "start": 32.9, "end": 33.25}, {"pitch": 62, "start": 33.25, "end": 33.6}, {"pitch": 65, "start": 33.6, "end": 33.95}, {"pitch": 69, "start": 33.95, "end": 34.3}, {"pitch": 55, "start": 34.3, "end": 34.65}, {"pitch": 58, "start": 34.65, "end": 35.0}, {"pitch": 62, "start": 35.0, "end": 35.35}, {"pitch": 65, "start": 35.35, "end": 35.7}, {"pitch": 57, "start": 35.7, "end": 36.05}, {"pitch": 60, "start": 36.05, "end": 36.4}, {"pitch": 65, "start": 36.4, "end": 36.75}, {"pitch": 65, "start": 36.75, "end": 37.1}, {"pitch": 51, "start": 37.1, "end": 37.45}, {"pitch": 51, "start": 37.45, "end": 37.8}, {"pitch": 52, "start": 37.8, "end": 38.15}, {"pitch": 69, "start": 38.15, "end": 38.5}, {"pitch": 70, "start": 38.5, "end": 38.85}, {"pitch": 50, "start": 38.85, "end": 39.2}, {"pitch": 65, "start": 39.2, "end": 39.55}, {"pitch": 57, "start": 39.55, "end": 39.9}, {"pitch": 62, "start": 39.9, "end": 40.25}, {"pitch": 65, "start": 40.25, "end": 40.6}, {"pitch": 55, "start": 40.6, "end": 40.95}, {"pitch": 58, "start": 40.95, "end": 41.3}, {"pitch": 62, "start": 41.3, "end": 41.65}, {"pitch": 65, "start": 41.65, "end": 42.0}, {"pitch": 69, "start": 42.0, "end": 42.35}, {"pitch": 48, "start": 42.35, "end": 42.7}, {"pitch": 52, "start": 42.7, "end": 43.05}, {"pitch": 55, "start": 43.05, "end": 43.4}, {"pitch": 64, "start": 43.4, "end": 43.75}, {"pitch": 67, "start": 43.75, "end": 44.1}, {"pitch": 72, "start": 44.1, "end": 44.45}, {"pitch": 50, "start": 44.45, "end": 44.8}, {"pitch": 65, "start": 44.8, "end": 45.15}, {"pitch": 69, "start": 45.15, "end": 45.5}, {"pitch": 62, "start": 45.5, "end": 45.85}, {"pitch": 52, "start": 45.85, "end": 46.2}, {"pitch": 60, "start": 46.2, "end": 46.55}, {"pitch": 67, "start": 46.55, "end": 46.9}, {"pitch": 67, "start": 46.9, "end": 47.25}, {"pitch": 72, "start": 47.25, "end": 47.6}, {"pitch": 72, "start": 47.6, "end": 47.95}, {"pitch": 48, "start": 47.95, "end": 48.3}, {"pitch": 55, "start": 48.3, "end": 48.65}, {"pitch": 64, "start": 48.65, "end": 49.0}, {"pitch": 67, "start": 49.0, "end": 49.35}, {"pitch": 72, "start": 49.35, "end": 49.7}, {"pitch": 62, "start": 49.7, "end": 50.05}, {"pitch": 43, "start": 50.05, "end": 50.4}, {"pitch": 48, "start": 50.4, "end": 50.75}, {"pitch": 64, "start": 50.75, "end": 51.1}, {"pitch": 67, "start": 51.1, "end": 51.45}, {"pitch": 72, "start": 51.45, "end": 51.8}, {"pitch": 48, "start": 51.8, "end": 52.15}, {"pitch": 50, "start": 52.15, "end": 52.5}];
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const canvas = document.getElementById('pianoRoll');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = canvas.clientWidth * window.devicePixelRatio;
+        canvas.height = canvas.clientHeight * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        let audioCtx = null;
+        let isPlaying = false;
+        let startTime = 0;
+        let activeNodes = [];
+        let animationId = null;
+
+        const totalDuration = notes.length ? notes[notes.length - 1].end : 0;
+        const pitches = notes.map(n => n.pitch);
+        const minPitch = Math.max(0, Math.min(...pitches) - 2);
+        const maxPitch = Math.min(127, Math.max(...pitches) + 2);
+
+        function draw(progressTime = 0) {
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw pitch grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            for (let p = minPitch; p <= maxPitch; p++) {
+                const y = h - ((p - minPitch) / (maxPitch - minPitch || 1)) * h;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            // Draw notes
+            notes.forEach(note => {
+                const x = (note.start / totalDuration) * w;
+                const width = Math.max(3, ((note.end - note.start) / totalDuration) * w - 1);
+                const y = h - ((note.pitch - minPitch) / (maxPitch - minPitch || 1)) * h;
+                const isCurrent = progressTime >= note.start && progressTime <= note.end;
+
+                ctx.fillStyle = isCurrent ? '#38bdf8' : '#818cf8';
+                ctx.fillRect(x, y - 6, width, 10);
+            });
+
+            // Draw playhead
+            if (progressTime > 0) {
+                const playX = (progressTime / totalDuration) * w;
+                ctx.strokeStyle = '#f43f5e';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(playX, 0);
+                ctx.lineTo(playX, h);
+                ctx.stroke();
+            }
+        }
+
+        draw(0);
+
+        function playNote(pitch, when, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const freq = 440 * Math.pow(2, (pitch - 69) / 12);
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, when);
+
+            gain.gain.setValueAtTime(0.001, when);
+            gain.gain.exponentialRampToValueAtTime(0.2, when + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(when);
+            osc.stop(when + duration);
+            activeNodes.push(osc);
+        }
+
+        function startPlayback() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            isPlaying = true;
+            playBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            const now = audioCtx.currentTime;
+            startTime = now;
+
+            notes.forEach(n => {
+                playNote(n.pitch, now + n.start, n.end - n.start);
+            });
+
+            function loop() {
+                if (!isPlaying) return;
+                const elapsed = audioCtx.currentTime - startTime;
+                draw(elapsed);
+                if (elapsed < totalDuration) {
+                    animationId = requestAnimationFrame(loop);
+                } else {
+                    stopPlayback();
+                }
+            }
+            loop();
+        }
+
+        function stopPlayback() {
+            isPlaying = false;
+            playBtn.disabled = false;
+            stopBtn.disabled = true;
+            cancelAnimationFrame(animationId);
+            activeNodes.forEach(node => {
+                try { node.stop(); } catch(e) {}
+            });
+            activeNodes = [];
+            draw(0);
+        }
+
+        playBtn.addEventListener('click', startPlayback);
+        stopBtn.addEventListener('click', stopPlayback);
+    </script>
+</body>
+</html>
